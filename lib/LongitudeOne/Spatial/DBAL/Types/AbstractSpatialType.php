@@ -16,6 +16,8 @@
 namespace LongitudeOne\Spatial\DBAL\Types;
 
 use Doctrine\DBAL\Platforms\AbstractPlatform;
+use Doctrine\DBAL\Platforms\MySQLPlatform;
+use Doctrine\DBAL\Platforms\PostgreSQLPlatform;
 use Doctrine\DBAL\Types\Type;
 use LongitudeOne\Spatial\DBAL\Platform\PlatformInterface;
 use LongitudeOne\Spatial\Exception\InvalidValueException;
@@ -228,13 +230,17 @@ abstract class AbstractSpatialType extends Type
      */
     private function getSpatialPlatform(AbstractPlatform $platform)
     {
-        $platformName = $platform->getName();
+        $platformName = match(true) {
+            $platform instanceof PostgreSQLPlatform => 'postgresql',
+            $platform instanceof MySQLPlatform => 'mysql',
+            default =>  str_replace('Platform', '', (new \ReflectionClass($platform))->getShortName()),
+        };
         $const = sprintf('self::PLATFORM_%s', mb_strtoupper($platformName));
 
         if (!defined($const)) {
             throw new UnsupportedPlatformException(sprintf(
                 'DBAL platform "%s" is not currently supported.',
-                $platform->getName()
+                $platformName
             ));
         }
 
